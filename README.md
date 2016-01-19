@@ -1,14 +1,17 @@
-# 一、使用说明：
-## 1、安装blade构建环境:
-  * 1) 执行blade下面的install脚本进行安装： blade/install 
+# builder简介
+ 一个集成blade、ccache、cpplint、scons的构建环境，直接下载下来就可以使用，省却各种依赖环境的配置
+
+# 使用说明
+1.安装blade构建环境:
+   1) 执行blade下面的install脚本进行安装： blade/install 
       说明： 本脚本会在$HOME/bin下面添加一些blade支撑工具(blade、bladefunctions、genlibbuild、lsnobuild、lsrc、merge-static-libs)的软连接,
              同时会在$HOME/.vim下面添加blade语法高亮、indent的vim插件
   * 2) source $HOME/.bash_profile
  
-## 2、执行完上面的两步骤后blade就安装完毕了，后续就可以在指定的BLADE_ROOT下面开始使用blade进行build了
+2. 执行完上面的两步骤后blade就安装完毕了，后续就可以在指定的BLADE_ROOT下面开始使用blade进行build了
     blade build ...
  
-# 二、目录结构
+# 目录结构
 ## blade
  blade 是一个现代构建系统，期望的目标是强大而好用，把程序员从构建的繁琐中解放出来。
  对blade的进一步了解请访问:https://github.com/chen3feng/typhoon-blade
