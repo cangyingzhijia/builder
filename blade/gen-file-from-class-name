@@ -1,0 +1,225 @@
+#!/usr/bin/python
+# encoding: utf8
+"""
+ Copyright (c) 20xx YoYi Inc.
+ All rights reserved.
+
+ Author: CangKui <cangkui@yoyi.com.cn>
+ Date:   October 20, 2011
+
+ 根据类名自动生成cpp文件、头文件及单元测试文件模板的有用小工具。
+ Usage:
+    gen-file-from-class-name <class name> [namespace]
+    说明：
+      如果namespace未指定则使用目录路径作为namespace,
+      同时从COPYRIGHT文件中获取copyright声明,COPYRIGHT文件的查找规则为从当前目录向根目录依次查找，
+      只要其中一个目录中存在则使用此文件中的内容作为copyright声明
+"""
+
+from datetime import date;
+import sys
+import re
+import os
+import os.path
+import getpass
+
+def _get_dir_path():
+    cur_dir = os.getcwd()
+    path_element_arr = cur_dir.split("/")
+    dir_path_entry_list = []
+    while len(path_element_arr) > 0:
+        dir_name = '/'.join(path_element_arr)
+        blade_root_file = "%s/BLADE_ROOT" % dir_name
+        if os.path.exists(blade_root_file):
+            break
+        dir_path_entry_list.append(path_element_arr.pop())
+    if len(path_element_arr) !=0 and  len(dir_path_entry_list) != 0:
+        dir_path_entry_list.reverse()
+        return '/'.join(dir_path_entry_list)
+    return ""
+
+def get_copyright():
+    """通过查找COPYRIGHT文件得到copyright声明，
+    如果没有COPYRIGHT文件存在则使用默认声明
+    Returns:
+      找到的copyright字符串
+    """
+    cur_dir = os.getcwd()
+    path_element_arr = cur_dir.split("/")
+    while len(path_element_arr) > 0:
+        dir_name = '/'.join(path_element_arr)
+        copyright_file = "%s/COPYRIGHT" % dir_name
+        if os.path.exists(copyright_file):
+            with open(copyright_file, "r") as f:
+                return f.read()
+        path_element_arr.pop()
+    default_copyright_format = \
+"""// Copyright 2015 xxxx Inc. All Rights Reserved.
+//
+// Author: {author}
+// Date: {date}
+//
+"""
+    author = getpass.getuser()
+    dt = date.today().strftime("%Y-%m-%d")
+    return default_copyright_format.format(author = author, date = dt)
+
+def _class_name_to_file_prefix(class_name):
+    lower_str = class_name.lower()
+    result = [] 
+    for i in range(len(lower_str)):
+        if class_name[i] == lower_str[i]:
+            result.append(lower_str[i])
+            continue
+        if i != 0:
+            result.append("-")
+        result.append(lower_str[i])
+    return "".join(result)
+
+def _make_header_file_guard_marcro(file_name):
+    file_name = file_name.upper()
+    file_name = re.sub("[^\w]", "_", file_name)
+    file_name = file_name + '_'
+    return file_name
+
+def _make_namespace(namespace_str):
+    path_element_arr = re.split("[^\w]", namespace_str)
+    begin_namespace_list = []
+    end_namespace_list = []
+    for element in path_element_arr:
+        begin_namespace_str = "namespace %s {\n" % element
+        begin_namespace_list.append(begin_namespace_str)
+        end_namespace_str = "}  // namespace %s\n" % element
+        end_namespace_list.append(end_namespace_str)
+    end_namespace_list.reverse()
+    return (''.join(begin_namespace_list), ''.join(end_namespace_list))
+
+def gen_header_file(
+        class_name,
+        dir_path,
+        file_prefix,
+        copyright,
+        begin_namespace,
+        end_namespace):
+    """生成头文件。头文件命名为"${file_prefix}.h"
+    Args:
+        dir_path: 相对于BLADE_ROOT开始的路径
+        file_prefix: 生成的文件名前缀，不包含文件扩展名
+    Returns:
+        返回相对于BLADE_ROOT开始的.h文件路径
+    """
+    header_file_guard_macro = _make_header_file_guard_marcro("%s_%s.h" % (dir_path, file_prefix))
+    content_format = \
+"""{copyright}#ifndef {header_file_guard_macro}
+#define {header_file_guard_macro}
+
+{begin_namespace}
+
+class {class_name} {{
+ public:
+  {class_name}();
+  virtual ~{class_name}();
+}};
+
+{end_namespace}
+
+#endif  // {header_file_guard_macro}
+"""
+    with open("%s.h" % (file_prefix), "w+") as f:
+        f.write(content_format.format(
+            header_file_guard_macro = header_file_guard_macro,
+            copyright = copyright,
+            begin_namespace = begin_namespace.strip(),
+            end_namespace = end_namespace.strip(),
+            class_name = class_name))
+    return '%s/%s.h' % (dir_path, file_prefix)
+
+def gen_cpp_file(
+        class_name,
+        file_prefix,
+        header_file,
+        copyright,
+        begin_namespace,
+        end_namespace):
+    """生成cpp文件。cpp文件命名为"${file_prefix}.cpp"
+    Args:
+        dir_path: 相对于BLADE_ROOT开始的路径
+        file_prefix: 生成的文件名前缀，不包含文件扩展名
+    Returns:
+        不返回
+    """
+    content_format = """{copyright}#include "{header_file}"
+
+{begin_namespace}
+
+{class_name}::{class_name}() {{
+  // @TODO implement
+}}
+
+{class_name}::~{class_name}() {{
+  // @TODO implement
+}}
+
+{end_namespace}
+"""
+    with open("%s.cpp" % (file_prefix), "w+") as f:
+        f.write(content_format.format(
+            header_file = header_file,
+            copyright = copyright,
+            begin_namespace = begin_namespace.strip(),
+            end_namespace = end_namespace.strip(),
+            class_name = class_name))
+
+def gen_utest_file(class_name, file_prefix, header_file, copyright, begin_namespace, end_namespace):
+    """生成utest文件。utest文件命名为"${file_prefix}_test.cpp"
+    Args:
+        dir_path: 相对于BLADE_ROOT开始的路径
+        file_prefix: 生成的文件名前缀，不包含文件扩展名
+    Returns:
+        不返回
+    """
+    content_format = """{copyright}#include "{header_file}"
+#include "thirdparty/gtest/gtest.h"
+#include "thirdparty/perftools/heap-checker.h"
+
+{begin_namespace}
+
+// @TODO add test case here
+TEST({class_name}, {class_name}) {{
+  {class_name}* ptr = new {class_name}();
+  EXPECT_TRUE(ptr != nullptr);
+  delete ptr;
+}}
+
+{end_namespace}
+
+int main(int argc, char** argv) {{
+    testing::InitGoogleTest(&argc, argv);
+    HeapLeakChecker checker("Test with memory leak detection");
+    return RUN_ALL_TESTS() || !checker.NoLeaks();
+}}
+"""
+    with open("%s_test.cpp" % (file_prefix), "w+") as f:
+        f.write(content_format.format(
+            header_file = header_file,
+            copyright = copyright,
+            begin_namespace = begin_namespace.strip(),
+            end_namespace = end_namespace.strip(),
+            class_name = class_name))
+
+if __name__ == '__main__':
+    if len(sys.argv) < 2:
+        print "usage:%s <class name> [namespace]"
+        sys.exit(-1)
+    class_name = sys.argv[1]
+    dir_path = _get_dir_path()
+    namespace = dir_path
+    if len(sys.argv) == 3:
+        namespace = sys.argv[2]
+    file_prefix = _class_name_to_file_prefix(class_name)
+    copyright = get_copyright()
+    begin_namespace, end_namespace = _make_namespace(namespace)
+    header_file = gen_header_file(class_name, dir_path, file_prefix, copyright, begin_namespace, end_namespace)
+    gen_cpp_file(class_name, file_prefix, header_file, copyright, begin_namespace, end_namespace)
+    gen_utest_file(class_name, file_prefix, header_file, copyright, begin_namespace, end_namespace)
+    sys.exit(0)

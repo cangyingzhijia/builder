@@ -1,0 +1,180 @@
+#!/bin/bash
+#
+# SCRIPT: blade
+# AUTHOR: Michaelpeng <michaelpeng@tencent.com>
+#         Phongchen <phongchen@tencent.com>
+# DATE:   Dec 17 2011
+# REV:    1.0.P (Valid are A, B, D, T and P)
+#               (For Alpha, Beta, Dev, Test and Production)
+#
+# PLATFORM: Linux
+# PURPOSE : A bash wrapper for blade, always run blade of
+#           corresponding version in for given source dir
+#           tree.
+# REV LIST:
+#        DATE:    Dec 17 2011
+#        BY  :    Michaelpeng
+#        MODIFICATION: Created
+
+function _info()
+{
+    if [ -t 1 ]; then
+        echo -e "\033[1;36mBlade(info): $@\033[m" >&2
+    else
+        echo -e "Blade(info): $@" >&2
+    fi
+}
+
+function _warning()
+{
+    if [ -t 2 ]; then
+        echo -e "\033[1;33mBlade(warning): $@\033[m" >&2
+    else
+        echo -e "Blade(warning): $@" >&2
+    fi
+}
+
+function _error_exit()
+{
+    if [ -t 2 ]; then
+        echo -e "\033[1;31mBlade(error): $@\nBlade (error): Blade will exit...\033[m" >&2
+    else
+        echo -e "Blade(error): $@\nBlade (error): Blade will exit..." >&2
+    fi
+    exit 1
+}
+
+function _full_real_path()
+{
+    local o
+    local f
+    f="$1"
+
+    if [ ! -L "$0" ]; then
+        echo $f
+        return 0
+    fi
+
+    if o=`readlink -f $f 2>/dev/null`; then
+        echo "$o";
+        return 0
+    fi
+
+    # BSD readlink doesn't support -f
+    if o=`readlink $f`; then
+        f="$o"
+    fi
+
+    echo $(cd $(dirname $f) && pwd)/$(basename $f)
+    return 0
+}
+
+function _install_ccache()
+{
+    local ccache_root=$1
+    if [ -e $ccache_root/bin/ccache ]
+    then
+        return 1
+    fi
+    if [ ! -d $ccache_root/src ]
+    then
+        _error_exit "ccache source code not exists:$ccache_root/src"
+    fi
+
+    _info "because not exists ccache so to compile one...."
+    # compile ccache
+    local cwd=$(pwd)
+    cd $ccache_root/src
+    ./configure --prefix=$ccache_root
+    make && make install
+    cd $cwd
+
+    # check again
+    if [ ! -e $ccache_root/bin/ccache ]
+    then
+        _warning "install ccache failed, so not exists ccache to use."
+    else
+        _info "install ccache succeess."
+    fi
+    return 0
+}
+
+blade_path=`_full_real_path $0`
+blade_dir=$(cd $(dirname $blade_path) && pwd)
+blade_file="$blade_dir/bootstrap.py"
+
+if [[ "$BLADE_AUTO_UPGRADE" != "no" ]]; then
+    # Auto update blade main program to latest version and run it
+    if svn_up_info=`svn up --trust-server-cert --non-interactive ${blade_dir} 2>&1`; then
+        _info "Auto upgrade success: $svn_up_info"
+    else
+        _warning "Auto upgrade failure: $svn_up_info"
+        _warning "Please svn up $blade_dir"
+        _warning "You can setenv BLADE_AUTO_UPGRADE=no to disable auto upgrade"
+    fi
+fi
+
+# Check the python version at first, exit blade when python
+# version is under 2.4
+no_python=$(which python 2>&1 | grep 'which: no')
+if [[ -n "$no_python" ]]; then
+    _error_exit "Please install python 2.4 or above in your system"
+fi
+
+python_ver=$(python -V 2>&1 | sed 's/Python //g')
+
+if [[ "$python_ver" < "2.4" ]]; then
+    _info "Python version in your machine: $python_ver"
+    _error_exit "Please upgrade your python version to 2.4 or above"
+fi
+
+# Export builder path
+builder_dir="$blade_dir/.."
+
+#Install ccache
+_install_ccache $builder_dir/ccache
+
+export PATH=$PATH:$builder_dir/blade:$builder_dir/ccache/bin:$builder_dir/scons/bin:$builder_dir/cpplint
+_info "export builder dir to path: $PATH"
+
+# Check scons environment
+scons_exe="$builder_dir/scons/bin/scons"
+if [ ! -e $scons_exe ];then
+    no_scons=$(which scons 2>&1 | grep 'which: no scons in')
+    if [[ -n "$no_scons" ]]; then
+        _error_exit "Please install scons v2.0 or above on your machine"
+    fi
+    scons_exe=$(which scons 2>&1)
+fi
+export SCONS_EXE=$scons_exe
+_info "export SCONS_EXE=$scons_exe"
+
+# Check blade.zip
+if [[ ! -f "$blade_file" ]]; then
+    _error_exit "Cannot find the core file $blade_file"
+fi
+
+# Check ccache dir
+if [ "$CCACHE_DIR" == "" ];then
+    source "$blade_dir/bladefunctions"
+    if blade_root=`_find_project_root`; then
+        export CCACHE_DIR="$blade_root/ccache-dir"
+        _info "export CCACHE_DIR=\"$blade_root/ccache-dir\""
+        export CCACHE_MAXSIZE=10G
+        _info "export CCACHE_MAXSIZE=10G"
+    fi
+fi
+
+if [ -d "/usr/local/gcc-4.9.2" ];then
+    export CXX=/usr/local/gcc-4.9.2/bin/g++
+    export CPP=/usr/local/gcc-4.9.2/bin/g++
+    export CC=/usr/local/gcc-4.9.2/bin/gcc
+    export LD=/usr/local/gcc-4.9.2/bin/g++
+
+    _info "export CXX=/usr/local/gcc-4.9.2/bin/g++"
+    _info "export CPP=/usr/local/gcc-4.9.2/bin/g++"
+    _info "export CC=/usr/local/gcc-4.9.2/bin/gcc"
+    _info "export LD=/usr/local/gcc-4.9.2/bin/g++"
+fi
+
+python $blade_file "$@"
