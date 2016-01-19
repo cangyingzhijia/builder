@@ -4,20 +4,20 @@
 # 使用说明
 1、安装blade构建环境
  * 1) 安装blade<br>
-```
-  blade/install
-``` <br>
+ ```
+   blade/install
+ ``` <br>
 说明： 本脚本会在$HOME/bin下面添加一些blade支撑工具(blade、bladefunctions、genlibbuild、<br>
        lsnobuild、lsrc、merge-static-libs)的软连接,同时会在$HOME/.vim下面添加blade语法高亮、indent的vim插件
  * 2) 配置环境变量<br>
-```
-  source $HOME/.bash_profile
-```
+ ```
+   source $HOME/.bash_profile
+ ```
  
 2、 执行完上面的两步骤后blade就安装完毕了，后续就可以在指定的BLADE_ROOT下面开始使用blade进行build了<br>
-```
-  blade build ...
-```
+ ```
+   blade build ...
+ ```
  
 # 集成工具
 ## blade
