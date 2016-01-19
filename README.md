@@ -3,13 +3,13 @@
 
 # 使用说明
 1、安装blade构建环境
- * 1) 安装blade
+ * 1) 安装blade<br>
  ```
-   blade/install <br>
- ```
+   blade/install
+ ``` <br>
 说明： 本脚本会在$HOME/bin下面添加一些blade支撑工具(blade、bladefunctions、genlibbuild、lsnobuild、lsrc、merge-static-libs)的软连接,<br>
 同时会在$HOME/.vim下面添加blade语法高亮、indent的vim插件
- * 2) 配置环境变量
+ * 2) 配置环境变量<br>
  ```
   source $HOME/.bash_profile
  ```
