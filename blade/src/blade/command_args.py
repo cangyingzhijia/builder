@@ -393,6 +393,8 @@ class CmdArguments(object):
 
     def _arch_bits(self):
         """Platform arch."""
+        if 'arm64' == platform.machine():
+            return "arm64"
         if 'x86_64' == platform.machine():
             return '64'
         else:

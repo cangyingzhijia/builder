@@ -165,16 +165,4 @@ if [ "$CCACHE_DIR" == "" ];then
     fi
 fi
 
-if [ -d "/usr/local/gcc-4.9.2" ];then
-    export CXX=/usr/local/gcc-4.9.2/bin/g++
-    export CPP=/usr/local/gcc-4.9.2/bin/g++
-    export CC=/usr/local/gcc-4.9.2/bin/gcc
-    export LD=/usr/local/gcc-4.9.2/bin/g++
-
-    _info "export CXX=/usr/local/gcc-4.9.2/bin/g++"
-    _info "export CPP=/usr/local/gcc-4.9.2/bin/g++"
-    _info "export CC=/usr/local/gcc-4.9.2/bin/gcc"
-    _info "export LD=/usr/local/gcc-4.9.2/bin/g++"
-fi
-
 python $blade_file "$@"

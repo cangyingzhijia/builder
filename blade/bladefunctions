@@ -81,7 +81,7 @@ _blade()
     fi
 
     commonOpts="--color --profile --generate-dynamic --no-test --help -pdebug \
-                -prelease -m32 -m64 --verbose"
+                -prelease -m64 --verbose"
     buildOpts="$commonOpts --gcov --gprof --generate-java --generate-php"
 
     # possible options for the command

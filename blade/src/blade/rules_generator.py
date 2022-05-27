@@ -74,8 +74,14 @@ class SconsRulesHelper(SconsRules):
                             gcc_version, python_inc, build_environment)
         self.svn_roots = svn_roots
         self.svn_info_map = {}
-
-        self.version_cpp_compile_template = string.Template("""
+        if self.options.m == "arm64":
+             self.version_cpp_compile_template = string.Template("""
+env_version = Environment(ENV = os.environ)
+env_version.Append(SHCXXCOMSTR = '$updateinfo')
+version_obj = env_version.SharedObject('$filename')
+""")
+        else:
+            self.version_cpp_compile_template = string.Template("""
 env_version = Environment(ENV = os.environ)
 env_version.Append(SHCXXCOMSTR = '$updateinfo')
 env_version.Append(CPPFLAGS = '-m$m')
